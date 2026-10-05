@@ -3,14 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1F3A5F">
-<title>imPR 出勤</title>
+<meta name="theme-color" content="#ffffff">
+<title>新動力公關 imPR｜同仁出勤</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%2712%27 fill=%27%23EC6F14%27/%3E%3Cg fill=%27none%27 stroke=%27%23fff%27 stroke-width=%272.6%27 stroke-linecap=%27round%27%3E%3Cpath d=%27M8.2 8.6a6 6 0 1 0 7.6 0%27/%3E%3Cpath d=%27M12 5.5v6%27/%3E%3C/g%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --navy:#1F3A5F; --orange:#E07B39; --green:#2E8B57; --red:#C0392B;
+  --navy:#1F3A5F; --orange:#EC6F14; --green:#2E8B57; --red:#C0392B;
   --bg:#F4F6F9; --card:#fff; --line:#E3E8EF; --text:#1D2733; --muted:#6B7785;
 }
 *{box-sizing:border-box}
@@ -23,11 +24,15 @@ button{font-family:inherit}
 .center{text-align:center}
 
 /* 頂列 */
-.topbar{position:sticky;top:0;z-index:10;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:12px 16px}
-.brand{font-weight:700;font-size:18px;letter-spacing:.5px}
-.brand span{color:var(--orange);margin-left:6px;font-weight:500}
-#who{font-size:14px;display:flex;align-items:center;gap:10px}
-#who button{background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:8px;padding:4px 10px;font-size:13px;cursor:pointer}
+.topbar{position:sticky;top:0;z-index:10;background:#fff;border-bottom:3px solid var(--orange);display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px}
+.brand{display:flex;align-items:center;gap:10px;color:var(--orange);min-width:0}
+.brand .logo{height:32px;width:auto;flex:none}
+.brand .bt{border-left:2px solid var(--orange);padding-left:10px;line-height:1.25;white-space:nowrap}
+.brand .bt b{display:block;font-size:15px;color:var(--orange);letter-spacing:1px}
+.brand .bt span{display:block;font-size:12px;color:var(--navy);font-weight:500}
+#who{font-size:14px;display:flex;align-items:center;gap:10px;color:var(--navy);white-space:nowrap}
+#who button{background:transparent;border:1px solid var(--line);color:var(--navy);border-radius:8px;padding:4px 10px;font-size:13px;cursor:pointer}
+@media (max-width:400px){#who > span{display:none}}
 
 main{max-width:760px;margin:0 auto;padding:16px}
 .view{display:none}
@@ -68,7 +73,7 @@ input[readonly]{background:#F4F6F9}
 .hello{font-size:16px;margin-bottom:10px}
 .badge{display:inline-block;padding:7px 18px;border-radius:999px;font-weight:700;font-size:15px;background:#EEF1F5;color:var(--muted)}
 .badge.office{background:#E5F3EB;color:var(--green)}
-.badge.trip{background:#FCEEE4;color:var(--orange)}
+.badge.trip{background:#FDEBDD;color:var(--orange)}
 .mode-hint{font-size:13px;color:var(--muted);margin-top:6px;min-height:18px}
 .trip{text-align:left;background:#FFF8F2;border:1px solid #F3D3BC;border-radius:12px;padding:6px 14px 14px;margin-top:14px}
 .geo{font-size:13px;color:var(--muted);margin-top:10px}
@@ -133,7 +138,7 @@ th{color:var(--muted);font-weight:500;font-size:13px}
 <body>
 
 <header class="topbar">
-  <div class="brand">imPR<span>同仁出勤</span></div>
+  <div class="brand"><svg class="logo" viewBox="0 0 142 62" role="img" aria-label="imPR"><g fill="none" stroke="currentColor" stroke-width="11"><path d="M7.5 62V38a14 14 0 0 1 28 0v24M35.5 38a14 14 0 0 1 28 0v24"/><path d="M76.5 62V25.5H90a10.5 10.5 0 0 1 0 21H76.5"/><path d="M114.5 62V25.5H127a10 10 0 0 1 0 20h-12.5M125 45l13 17"/></g><circle cx="7.5" cy="10.5" r="10.5" fill="currentColor"/><g fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M4.1 7.6a4.9 4.9 0 1 0 6.8 0"/><path d="M7.5 4.8v5.3"/></g></svg><div class="bt"><b>新動力公關</b><span>同仁出勤系統</span></div></div>
   <div id="who"></div>
 </header>
 
@@ -470,7 +475,15 @@ async function loadHome() {
   if (S.user) $('#h-hello').textContent = S.user.name + '，你好';
   $('#b-in').disabled = $('#b-out').disabled = true;
   try {
-    const d = await api('status', { deviceId: S.deviceId });
+    let d = await api('status', { deviceId: S.deviceId });
+    if (d.autoBindAvailable) {
+      // 導入期間：在辦公室網路用桌機開啟時，自動把這台電腦綁定為辦公室裝置
+      const b = await api('autoBind', { deviceId: S.deviceId });
+      S.deviceId = b.deviceId;
+      store.set('imprAtt.deviceId', b.deviceId);
+      toast(b.msg);
+      d = await api('status', { deviceId: S.deviceId });
+    }
     S.st = d;
     S.user = d.user;
     S.offset = d.serverMs - Date.now();
@@ -762,6 +775,7 @@ const SETTING_FIELDS = [
   ['FLEX_MIN', '彈性分鐘數', 'number'], ['OT_THRESHOLD_MIN', '超時判定門檻（分鐘）', 'number'],
   ['OT_UNIT_HOURS', '加班計算單位（小時）', 'number'], ['SESSION_DAYS', '登入效期（天）', 'number'],
   ['ADMIN_CODE', '裝置綁定管理碼（至少 6 碼）', 'text'],
+  ['AUTO_BIND', '辦公室網路自動綁定桌機（導入期間開啟，綁完請關閉）', 'bool'],
 ];
 
 function loadAdmin() {
@@ -826,7 +840,9 @@ async function renderAdmin() {
       const s = await api('adminGetSettings');
       await S.ipReady;
       box.innerHTML = `<div class="card"><h3>系統設定</h3>
-        ${SETTING_FIELDS.map(([k, label, type]) => `<label>${label}<input data-k="${k}" type="${type}" ${type === 'number' ? 'step="any" min="0"' : ''} value="${esc(s[k])}"></label>`).join('')}
+        ${SETTING_FIELDS.map(([k, label, type]) => type === 'bool'
+          ? `<label>${label}<select data-k="${k}"><option value="FALSE">關閉</option><option value="TRUE" ${s[k] === 'TRUE' ? 'selected' : ''}>開啟</option></select></label>`
+          : `<label>${label}<input data-k="${k}" type="${type}" ${type === 'number' ? 'step="any" min="0"' : ''} value="${esc(s[k])}"></label>`).join('')}
         <div class="hint-box">你目前的公網 IP：<b>${esc(S.ip || '無法取得')}</b>
           ${S.ip ? `<button class="btn sm" data-a="add-ip" style="margin-left:8px">加入辦公室 IP</button>` : ''}</div>
         <button class="btn primary block" data-a="save-set">儲存設定</button></div>`;
