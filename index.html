@@ -291,10 +291,12 @@ const ROLE = { staff: '同仁', manager: '主管', admin: '管理員' };
 const WD = '日一二三四五六';
 
 function parseJSON(s) { try { return JSON.parse(s); } catch (e) { return null; } }
+function validOr(v, re) { return v && re.test(v) ? v : ''; }
 const S = {
-  token: store.get('impr_token') || '',
-  user: parseJSON(store.get('impr_user')),
-  deviceId: store.get('impr_deviceId') || '',
+  // 同一個 github.io 網域下的其他網站共用 localStorage，鍵名加前綴並驗證格式，避免讀到別人的資料
+  token: validOr(store.get('imprAtt.token'), /^[0-9a-f]{64}$/),
+  user: parseJSON(store.get('imprAtt.user')),
+  deviceId: validOr(store.get('imprAtt.deviceId'), /^[0-9a-f-]{36}$/),
   ip: '', ipReady: null, offset: 0, st: null, geo: { state: 'idle' }, pending: null, emps: [],
 };
 
@@ -397,7 +399,7 @@ function renderChrome() {
 function clearLogin() {
   S.token = '';
   S.st = null;
-  store.del('impr_token');
+  store.del('imprAtt.token');
   renderChrome();
   show('login');
 }
@@ -423,8 +425,8 @@ $('#f-login').addEventListener('submit', e => {
     const d = await api('login', { empId: $('#l-id').value.trim(), pin: $('#l-pin').value });
     S.token = d.token;
     S.user = d.user;
-    store.set('impr_token', d.token);
-    store.set('impr_user', JSON.stringify(d.user));
+    store.set('imprAtt.token', d.token);
+    store.set('imprAtt.user', JSON.stringify(d.user));
     $('#l-pin').value = '';
     loadHome();
   });
@@ -453,7 +455,7 @@ $('#r-go').addEventListener('click', e => busy(e.currentTarget, async () => {
     registeredBy: $('#r-by').value.trim(), oldDeviceId: S.deviceId,
   });
   S.deviceId = d.deviceId;
-  store.set('impr_deviceId', d.deviceId);
+  store.set('imprAtt.deviceId', d.deviceId);
   $('#r-code').value = '';
   toast('綁定完成：' + d.deviceName);
   loadRegister();
@@ -472,7 +474,7 @@ async function loadHome() {
     S.st = d;
     S.user = d.user;
     S.offset = d.serverMs - Date.now();
-    store.set('impr_user', JSON.stringify(d.user));
+    store.set('imprAtt.user', JSON.stringify(d.user));
     renderChrome();
     renderHome();
   } catch (e) {
@@ -496,7 +498,7 @@ function renderHome() {
     const sel = $('#t-reason');
     if (!sel.options.length) {
       sel.innerHTML = '<option value="">請選擇</option>' + d.tripReasons.map(r => `<option>${esc(r)}</option>`).join('');
-      $('#t-loc').value = store.get('impr_lastLoc') || '';
+      $('#t-loc').value = store.get('imprAtt.lastLoc') || '';
     }
     requestGeo();
   }
@@ -552,7 +554,7 @@ async function punch(type) {
     if (S.geo.state === 'pending') await Promise.race([S.geo.p, sleep(1500)]); // 最多等 1.5 秒，不阻擋打卡
     Object.assign(p, { location: loc, reason: rs, reasonNote: note });
     if (S.geo.state === 'ok') Object.assign(p, { lat: S.geo.lat, lng: S.geo.lng });
-    store.set('impr_lastLoc', loc);
+    store.set('imprAtt.lastLoc', loc);
   }
 
   const btn = type === 'IN' ? $('#b-in') : $('#b-out');
