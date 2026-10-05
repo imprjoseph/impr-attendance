@@ -64,6 +64,8 @@ input[readonly]{background:#F4F6F9}
 .btn:disabled{opacity:.55;cursor:default}
 .ract{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
 .ract .btn{flex:1}
+.form-msg{min-height:20px;margin-top:12px;font-size:14px;color:var(--muted)}
+.form-msg.err{color:var(--red);font-weight:500}
 .hint-box{font-size:13px;color:var(--muted);background:#F4F6F9;border-radius:10px;padding:10px 12px;margin-top:12px;line-height:1.6}
 
 /* 打卡首頁 */
@@ -355,7 +357,7 @@ function download(name, text) {
  * ============================================================ */
 function getIp() {
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 2500);
+  const timer = setTimeout(() => ctl.abort(), 1500);
   return fetch(IP_API, { signal: ctl.signal, cache: 'no-store' })
     .then(r => r.json()).then(j => { S.ip = j.ip || ''; })
     .catch(() => { S.ip = ''; }) // 取不到 IP → 後端自然判定為出差
@@ -405,6 +407,7 @@ function clearLogin() {
   S.token = '';
   S.st = null;
   store.del('imprAtt.token');
+  store.del('imprAtt.st');
   renderChrome();
   show('login');
 }
@@ -473,7 +476,13 @@ async function loadHome() {
   show('home');
   renderChrome();
   if (S.user) $('#h-hello').textContent = S.user.name + '，你好';
-  $('#b-in').disabled = $('#b-out').disabled = true;
+  // 先用上次的狀態立即畫面（同一天才用），背景再向後端更新；打卡時模式仍以後端判定為準
+  const cached = parseJSON(store.get('imprAtt.st'));
+  if (!S.st && cached && cached.user && S.user && cached.user.empId === S.user.empId && cached.date === ymd(new Date())) {
+    S.st = cached;
+    renderHome();
+  }
+  if (!S.st) $('#b-in').disabled = $('#b-out').disabled = true;
   try {
     let d = await api('status', { deviceId: S.deviceId });
     if (d.autoBindAvailable) {
@@ -488,6 +497,7 @@ async function loadHome() {
     S.user = d.user;
     S.offset = d.serverMs - Date.now();
     store.set('imprAtt.user', JSON.stringify(d.user));
+    store.set('imprAtt.st', JSON.stringify(d));
     renderChrome();
     renderHome();
   } catch (e) {
@@ -579,6 +589,7 @@ async function punch(type) {
     d.today[type === 'IN' ? 'in' : 'out'] = r.record;
     d.mode = r.mode;
     if (r.dueOut) d.dueOut = r.dueOut;
+    store.set('imprAtt.st', JSON.stringify(d));
     btn.classList.remove('busy');
     renderHome();
   } catch (e) {
@@ -871,8 +882,10 @@ function empForm(e) {
     <label>角色<select name="role">${Object.keys(ROLE).map(r => `<option value="${r}" ${e.role === r ? 'selected' : ''}>${ROLE[r]}</option>`).join('')}</select></label>
     <label>直屬主管<select name="managerId"><option value="">（無）</option>${mgrs.map(m =>
       `<option value="${esc(m.empId)}" ${e.managerId === m.empId ? 'selected' : ''}>${esc(m.empId)} ${esc(m.name)}</option>`).join('')}</select></label>
-    <label>${isNew ? '初始 PIN（4–6 位數字）' : '重設 PIN（留空則不變更）'}<input name="pin" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    <label>${isNew ? '初始 PIN（4–6 位數字）' : '重設 PIN（留空則不變更）'}<input name="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></label>
+    <label>再次輸入 PIN<input name="pin2" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></label>
     <label class="chk"><input type="checkbox" name="active" ${e.active ? 'checked' : ''}> 在職（啟用）</label></div>
+    <div class="form-msg" id="emp-msg"></div>
     <div class="ract"><button class="btn primary" data-a="save-emp" data-new="${isNew ? '1' : ''}">儲存</button><button class="btn" data-a="cancel-emp">取消</button></div></div>`;
 }
 
@@ -889,16 +902,32 @@ $('#ad-body').addEventListener('click', e => {
   } else if (a === 'save-emp') {
     const f = $('#emp-form');
     const v = n => $(`[name=${n}]`, f);
+    const msg = $('#emp-msg');
+    const bad = (text, field) => { msg.textContent = text; msg.className = 'form-msg err'; if (field) v(field).focus(); toast(text, 'err'); };
+    const isNew = !!b.dataset.new;
+    const empId = v('empId').value.trim(), name = v('name').value.trim();
+    const pin = v('pin').value.trim(), pin2 = v('pin2').value.trim();
+    if (!/^[A-Za-z0-9_-]{2,20}$/.test(empId)) return bad('員工編號須為 2–20 碼英文或數字，例如 S010', 'empId');
+    if (!name) return bad('請填寫姓名', 'name');
+    if (isNew && !pin) return bad('新增員工請設定初始 PIN', 'pin');
+    if (pin && !/^\d{4,6}$/.test(pin)) return bad('PIN 須為 4–6 位數字', 'pin');
+    if (pin !== pin2) return bad('兩次輸入的 PIN 不一致，請再確認', 'pin2');
+    msg.textContent = '儲存中…';
+    msg.className = 'form-msg';
     busy(b, async () => {
-      const r = await api('adminSaveEmployee', {
-        isNew: !!b.dataset.new, pin: v('pin').value.trim(),
-        emp: {
-          empId: v('empId').value.trim(), name: v('name').value.trim(), email: v('email').value.trim(),
-          dept: v('dept').value.trim(), role: v('role').value, managerId: v('managerId').value, active: v('active').checked,
-        },
-      });
-      toast(r.msg);
-      renderAdmin();
+      try {
+        const r = await api('adminSaveEmployee', {
+          isNew, pin,
+          emp: {
+            empId, name, email: v('email').value.trim(),
+            dept: v('dept').value.trim(), role: v('role').value, managerId: v('managerId').value, active: v('active').checked,
+          },
+        });
+        toast(r.msg);
+        renderAdmin();
+      } catch (err) {
+        bad(err.message);
+      }
     });
   } else if (a === 'toggle-dev') {
     if (!b.dataset.on && !confirm('停用後，此電腦打卡將一律判定為出差。確定停用？')) return;
