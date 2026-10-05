@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F3A5F">
+<title>imPR 出勤</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1F3A5F; --orange:#E07B39; --green:#2E8B57; --red:#C0392B;
+  --bg:#F4F6F9; --card:#fff; --line:#E3E8EF; --text:#1D2733; --muted:#6B7785;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:'Noto Sans TC',system-ui,-apple-system,'Microsoft JhengHei',sans-serif;background:var(--bg);color:var(--text);
+  -webkit-font-smoothing:antialiased;padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+button{font-family:inherit}
+.hidden{display:none!important}
+.muted{color:var(--muted)}
+.center{text-align:center}
+
+/* 頂列 */
+.topbar{position:sticky;top:0;z-index:10;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:12px 16px}
+.brand{font-weight:700;font-size:18px;letter-spacing:.5px}
+.brand span{color:var(--orange);margin-left:6px;font-weight:500}
+#who{font-size:14px;display:flex;align-items:center;gap:10px}
+#who button{background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:8px;padding:4px 10px;font-size:13px;cursor:pointer}
+
+main{max-width:760px;margin:0 auto;padding:16px}
+.view{display:none}
+.view.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+h2{font-size:20px;margin:0 0 12px;color:var(--navy)}
+h3{font-size:16px;margin:0 0 10px;color:var(--navy)}
+
+/* 表單 */
+label{display:block;font-size:14px;color:var(--muted);margin:10px 0 0}
+label > input,label > select,label > textarea{margin-top:4px}
+input,select,textarea{display:block;width:100%;font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--line);
+  border-radius:10px;background:#fff;color:var(--text);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(31,58,95,.12)}
+input[type=checkbox]{display:inline-block;width:18px;height:18px;margin:0;vertical-align:middle;accent-color:var(--navy)}
+textarea{min-height:76px;resize:vertical}
+input[readonly]{background:#F4F6F9}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+@media (max-width:560px){.grid2{grid-template-columns:1fr}}
+.chk{display:flex;align-items:center;gap:8px;color:var(--text);margin-top:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:#fff;color:var(--text);
+  border-radius:10px;padding:10px 16px;font-size:15px;font-weight:500;cursor:pointer}
+.btn.primary{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn.accent{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn.ok{background:var(--green);border-color:var(--green);color:#fff}
+.btn.ng{background:#fff;border-color:var(--red);color:var(--red)}
+.btn.sm{padding:5px 10px;font-size:13px;border-radius:8px}
+.btn.block{width:100%;margin-top:16px;padding:13px}
+.btn:disabled{opacity:.55;cursor:default}
+.ract{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.ract .btn{flex:1}
+.hint-box{font-size:13px;color:var(--muted);background:#F4F6F9;border-radius:10px;padding:10px 12px;margin-top:12px;line-height:1.6}
+
+/* 打卡首頁 */
+.home{text-align:center;padding:22px 18px}
+.date{color:var(--muted);font-size:15px}
+.clock{font-size:clamp(52px,15vw,80px);font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums;line-height:1.1;margin:4px 0 10px}
+.hello{font-size:16px;margin-bottom:10px}
+.badge{display:inline-block;padding:7px 18px;border-radius:999px;font-weight:700;font-size:15px;background:#EEF1F5;color:var(--muted)}
+.badge.office{background:#E5F3EB;color:var(--green)}
+.badge.trip{background:#FCEEE4;color:var(--orange)}
+.mode-hint{font-size:13px;color:var(--muted);margin-top:6px;min-height:18px}
+.trip{text-align:left;background:#FFF8F2;border:1px solid #F3D3BC;border-radius:12px;padding:6px 14px 14px;margin-top:14px}
+.geo{font-size:13px;color:var(--muted);margin-top:10px}
+.punch{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.pbtn{border:0;border-radius:20px;min-height:136px;color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:4px;transition:transform .08s,opacity .2s;box-shadow:0 6px 16px rgba(31,58,95,.15)}
+.pbtn .pl{font-size:30px;font-weight:700;letter-spacing:4px}
+.pbtn .pt{font-size:15px;opacity:.92;min-height:20px}
+.pbtn.in{background:var(--navy)}
+.pbtn.out{background:var(--orange)}
+.pbtn:active:not(:disabled){transform:scale(.97)}
+.pbtn:disabled{opacity:.5;cursor:default}
+.pbtn.done{background:#CBD2DA;color:#3F4A57;box-shadow:none;opacity:1}
+.pbtn.busy .pt::after{content:'處理中…'}
+.due{font-size:14px;color:var(--muted);margin-top:14px}
+.today-flags{margin-top:8px}
+
+/* 標籤、列表 */
+.chip{display:inline-block;font-size:12px;line-height:1.6;padding:1px 8px;border-radius:999px;background:#EEF1F5;color:var(--muted);margin:2px 2px 2px 0;white-space:nowrap}
+.chip.ok{background:#E5F3EB;color:var(--green)}
+.chip.warn{background:#FCEEE4;color:#B85A1E}
+.chip.err{background:#FBE7E5;color:var(--red)}
+.chip.navy{background:#E6ECF3;color:var(--navy)}
+.list .item{padding:12px 0;border-bottom:1px solid var(--line)}
+.list .item:last-child{border-bottom:0}
+.item .top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.item .sub{font-size:14px;color:var(--muted);margin-top:4px;line-height:1.6}
+.empty{color:var(--muted);text-align:center;padding:18px 0;font-size:14px}
+.toolbar{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.toolbar label{margin:0;flex:1;min-width:150px}
+.seg{display:flex;background:#E6EAF0;border-radius:12px;padding:4px;margin-bottom:14px}
+.seg button{flex:1;border:0;background:transparent;padding:9px;border-radius:9px;font-size:15px;color:var(--muted);cursor:pointer}
+.seg button.active{background:#fff;color:var(--navy);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.sec{display:flex;align-items:center;gap:8px;margin:20px 0 10px}
+.sec .cnt{background:var(--orange);color:#fff;border-radius:999px;font-size:12px;padding:0 8px;line-height:20px}
+.rcard .rh{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.rcard .rb{font-size:14px;line-height:1.7}
+.tl{display:flex;gap:10px;align-items:flex-start;color:var(--text);padding:8px 0;border-bottom:1px dashed var(--line);margin:0;font-size:14px;line-height:1.6}
+.tl input{margin-top:3px}
+.tl a{color:var(--navy)}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap}
+th{color:var(--muted);font-weight:500;font-size:13px}
+
+/* 底部分頁 */
+#tabs{position:fixed;bottom:0;left:0;right:0;z-index:10;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:center;
+  padding-bottom:env(safe-area-inset-bottom)}
+#tabs button{position:relative;flex:1;max-width:150px;border:0;background:none;padding:12px 4px 10px;font-size:14px;color:var(--muted);cursor:pointer;border-top:3px solid transparent}
+#tabs button.active{color:var(--navy);font-weight:700;border-top-color:var(--orange)}
+#tabs .dot{position:absolute;top:6px;margin-left:2px;background:var(--orange);color:#fff;font-size:11px;border-radius:999px;padding:0 6px;line-height:16px}
+
+#toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  max-width:min(92vw,520px);background:var(--navy);color:#fff;padding:12px 18px;border-radius:12px;font-size:15px;line-height:1.5;
+  transition:all .25s;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.18);text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast.ok{background:var(--green)}
+#toast.warn{background:var(--orange)}
+#toast.err{background:var(--red)}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">imPR<span>同仁出勤</span></div>
+  <div id="who"></div>
+</header>
+
+<main>
+  <!-- 登入 -->
+  <section id="v-login" class="view">
+    <form id="f-login" class="card" autocomplete="on">
+      <h2>登入</h2>
+      <label>員工編號<input id="l-id" autocomplete="username" autocapitalize="characters" required></label>
+      <label>PIN（4–6 位數字）<input id="l-pin" type="password" inputmode="numeric" pattern="\d{4,6}" maxlength="6" autocomplete="current-password" required></label>
+      <button class="btn primary block" type="submit">登入</button>
+      <div class="hint-box">登入一次可維持 30 天，之後開啟頁面即可直接打卡。</div>
+    </form>
+  </section>
+
+  <!-- 裝置綁定 -->
+  <section id="v-register" class="view">
+    <div class="card">
+      <h2>辦公室裝置綁定</h2>
+      <p class="muted" style="margin:0 0 4px">僅限管理員在辦公室電腦上操作。綁定後，此電腦在辦公室網路下打卡會判定為「辦公室打卡」。</p>
+      <div id="r-cur" class="hint-box">讀取中…</div>
+      <label>管理碼<input id="r-code" type="password" autocomplete="off"></label>
+      <label>電腦名稱<input id="r-name" placeholder="例：櫃檯電腦、會議室 A"></label>
+      <label>綁定人<input id="r-by" placeholder="管理員姓名"></label>
+      <button id="r-go" class="btn primary block">綁定此電腦</button>
+      <div class="hint-box">目前公網 IP：<b id="r-ip">取得中…</b><br>請確認此 IP 已加入「後台 → 設定 → 辦公室 IP」。</div>
+      <p class="center"><a href="./" style="color:var(--navy)">回打卡首頁</a></p>
+    </div>
+  </section>
+
+  <!-- 打卡首頁 -->
+  <section id="v-home" class="view">
+    <div class="card home">
+      <div class="date" id="h-date">&nbsp;</div>
+      <div class="clock" id="h-clock">--:--:--</div>
+      <div class="hello" id="h-hello"></div>
+      <div id="h-badge" class="badge">判定中…</div>
+      <div id="h-hint" class="mode-hint"></div>
+
+      <div id="trip" class="trip hidden">
+        <label>出差地點 *<input id="t-loc" placeholder="例：台北市政府、客戶公司名稱" maxlength="100"></label>
+        <label>事由 *<select id="t-reason"></select></label>
+        <label id="t-note-wrap" class="hidden">說明 *<input id="t-note" maxlength="100" placeholder="請簡述事由"></label>
+        <div id="t-geo" class="geo"></div>
+      </div>
+
+      <div class="punch">
+        <button id="b-in" class="pbtn in" disabled><span class="pl">上班</span><span class="pt" id="b-in-t"></span></button>
+        <button id="b-out" class="pbtn out" disabled><span class="pl">下班</span><span class="pt" id="b-out-t"></span></button>
+      </div>
+      <div class="today-flags" id="h-flags"></div>
+      <div class="due" id="h-due"></div>
+    </div>
+  </section>
+
+  <!-- 我的紀錄 -->
+  <section id="v-records" class="view">
+    <div class="card">
+      <div class="toolbar">
+        <label>月份<input type="month" id="rc-month"></label>
+        <button class="btn primary" id="rc-go">查詢</button>
+      </div>
+    </div>
+    <div id="rc-body"></div>
+  </section>
+
+  <!-- 申請 -->
+  <section id="v-apply" class="view">
+    <div class="seg" id="ap-seg">
+      <button data-f="ot" class="active">申請加班</button>
+      <button data-f="corr">補卡申請</button>
+    </div>
+    <form id="f-ot" class="card">
+      <h3>加班申請（須事前申請）</h3>
+      <label>日期<input type="date" id="ot-date" required></label>
+      <div class="grid2">
+        <label>預計開始<input type="time" id="ot-start" required></label>
+        <label>預計結束<input type="time" id="ot-end" required></label>
+      </div>
+      <label>所屬專案<select id="ot-proj" required></select></label>
+      <label>加班事由<textarea id="ot-reason" maxlength="200" required placeholder="請說明加班原因"></textarea></label>
+      <button class="btn primary block" type="submit">送出加班申請</button>
+      <div class="hint-box">・須在預計開始時間「之前」送出，事後申請將被系統拒絕。<br>・時數以實際打卡與核准時段的交集計算，以 0.5 小時為單位。<br>・不支援跨日加班。</div>
+    </form>
+    <form id="f-corr" class="card hidden">
+      <h3>補卡申請</h3>
+      <label>日期<input type="date" id="cr-date" required></label>
+      <div class="grid2">
+        <label>補哪一張卡<select id="cr-type"><option value="IN">上班卡</option><option value="OUT">下班卡</option></select></label>
+        <label>實際時間<input type="time" id="cr-time" required></label>
+      </div>
+      <label>原因<textarea id="cr-reason" maxlength="200" required placeholder="例：忘記打卡、手機沒電"></textarea></label>
+      <button class="btn primary block" type="submit">送出補卡申請</button>
+    </form>
+  </section>
+
+  <!-- 主管審核 -->
+  <section id="v-review" class="view">
+    <div id="rv-list"></div>
+    <h3 class="sec">異常報表</h3>
+    <div class="card">
+      <div class="toolbar">
+        <label>月份<input type="month" id="an-month"></label>
+        <button class="btn primary" id="an-go">查詢</button>
+      </div>
+      <div id="an-body" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <!-- 管理後台 -->
+  <section id="v-admin" class="view">
+    <div class="seg" id="ad-seg">
+      <button data-s="emp" class="active">員工</button>
+      <button data-s="dev">裝置</button>
+      <button data-s="proj">專案</button>
+      <button data-s="hol">假日</button>
+      <button data-s="set">設定</button>
+      <button data-s="exp">匯出</button>
+    </div>
+    <div id="ad-body"></div>
+  </section>
+</main>
+
+<nav id="tabs" class="hidden">
+  <button data-view="home">打卡</button>
+  <button data-view="records">紀錄</button>
+  <button data-view="apply">申請</button>
+  <button data-view="review" class="hidden">審核</button>
+  <button data-view="admin" class="hidden">後台</button>
+</nav>
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+ *  設定：部署 GAS Web App 後，將網址貼在這裡
+ * ============================================================ */
+const API_URL = 'https://script.google.com/macros/s/AKfycbxMT-Qr7jrugibU0Fo6icLZf8A0ZlUNM88mRUSGEeFUoLnSaA5LsVbM5zywN6halaPm/exec';
+const IP_API = 'https://api.ipify.org?format=json';
+
+/* ============================================================
+ *  工具
+ * ============================================================ */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+};
+const FLAG = { LATE: '遲到', EARLY: '早退', UNAPPROVED_OT: '未申請延時' };
+const MODE = { OFFICE: '辦公室', TRIP: '出差', FIX: '補卡' };
+const ROLE = { staff: '同仁', manager: '主管', admin: '管理員' };
+const WD = '日一二三四五六';
+
+function parseJSON(s) { try { return JSON.parse(s); } catch (e) { return null; } }
+const S = {
+  token: store.get('impr_token') || '',
+  user: parseJSON(store.get('impr_user')),
+  deviceId: store.get('impr_deviceId') || '',
+  ip: '', ipReady: null, offset: 0, st: null, geo: { state: 'idle' }, pending: null, emps: [],
+};
+
+const nowTW = () => new Date(Date.now() + S.offset);
+const ymd = d => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+const today = () => ymd(nowTW());
+const thisMonth = () => today().slice(0, 7);
+const hm = t => t ? String(t).slice(0, 5) : '—';
+function md(date) {
+  const [y, m, d] = date.split('-').map(Number);
+  return `${m}/${d}（${WD[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]}）`;
+}
+function statusChip(s) {
+  const cls = /正常|已確認|核准/.test(s) ? 'ok' : /待/.test(s) ? 'warn' : /退回|駁回/.test(s) ? 'err' : 'navy';
+  return `<span class="chip ${cls}">${esc(s)}</span>`;
+}
+function modeChip(m) { return `<span class="chip ${m === 'OFFICE' ? 'ok' : m === 'TRIP' ? 'warn' : 'navy'}">${MODE[m] || esc(m)}</span>`; }
+function flagChips(f) { return String(f || '').split(',').filter(Boolean).map(x => `<span class="chip err">${FLAG[x] || esc(x)}</span>`).join(''); }
+
+function toast(msg, type = 'ok') {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.className = ''; }, type === 'err' ? 4500 : 3200);
+}
+
+/** 按鈕執行中鎖定，錯誤統一 toast */
+async function busy(btn, fn) {
+  if (btn.disabled) return;
+  const txt = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '處理中…';
+  try { return await fn(); }
+  catch (e) { toast(e.message, 'err'); }
+  finally { btn.disabled = false; btn.textContent = txt; }
+}
+
+function download(name, text) {
+  const blob = new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }); // BOM：Excel 開啟不亂碼
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+/* ============================================================
+ *  API（不設 Content-Type → text/plain，避免 CORS preflight）
+ * ============================================================ */
+function getIp() {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 2500);
+  return fetch(IP_API, { signal: ctl.signal, cache: 'no-store' })
+    .then(r => r.json()).then(j => { S.ip = j.ip || ''; })
+    .catch(() => { S.ip = ''; }) // 取不到 IP → 後端自然判定為出差
+    .finally(() => clearTimeout(timer));
+}
+
+async function api(action, params = {}) {
+  if (S.ipReady) await S.ipReady;
+  const body = { action, token: S.token, ip: S.ip, ua: navigator.userAgent, ...params };
+  let j;
+  try {
+    const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
+    j = await r.json();
+  } catch (e) {
+    throw new Error('連線失敗，請確認網路後再試');
+  }
+  if (!j.ok) {
+    if (j.code === 'AUTH') clearLogin();
+    throw new Error(j.msg || '發生錯誤');
+  }
+  return j.data;
+}
+
+/* ============================================================
+ *  畫面切換
+ * ============================================================ */
+const LOADERS = { home: loadHome, records: loadRecords, apply: initApply, review: loadReview, admin: loadAdmin };
+
+function show(view) {
+  $$('.view').forEach(v => v.classList.toggle('active', v.id === 'v-' + view));
+  $$('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  $('#tabs').classList.toggle('hidden', !S.token || view === 'login' || view === 'register');
+  window.scrollTo(0, 0);
+}
+
+function renderChrome() {
+  const u = S.user;
+  $('#who').innerHTML = u && S.token ? `<span>${esc(u.name)}</span><button id="logout">登出</button>` : '';
+  const rank = { staff: 1, manager: 2, admin: 3 }[u && u.role] || 0;
+  $('#tabs [data-view=review]').classList.toggle('hidden', rank < 2);
+  $('#tabs [data-view=admin]').classList.toggle('hidden', rank < 3);
+  const n = S.st && S.st.pendingCount;
+  $('#tabs [data-view=review]').innerHTML = '審核' + (n ? `<span class="dot">${n}</span>` : '');
+}
+
+function clearLogin() {
+  S.token = '';
+  S.st = null;
+  store.del('impr_token');
+  renderChrome();
+  show('login');
+}
+
+$('#tabs').addEventListener('click', e => {
+  const b = e.target.closest('button[data-view]');
+  if (b) LOADERS[b.dataset.view]();
+});
+
+$('#who').addEventListener('click', async e => {
+  if (e.target.id !== 'logout') return;
+  if (!confirm('確定要登出嗎？')) return;
+  api('logout').catch(() => {});
+  clearLogin();
+});
+
+/* ============================================================
+ *  登入
+ * ============================================================ */
+$('#f-login').addEventListener('submit', e => {
+  e.preventDefault();
+  busy($('#f-login button'), async () => {
+    const d = await api('login', { empId: $('#l-id').value.trim(), pin: $('#l-pin').value });
+    S.token = d.token;
+    S.user = d.user;
+    store.set('impr_token', d.token);
+    store.set('impr_user', JSON.stringify(d.user));
+    $('#l-pin').value = '';
+    loadHome();
+  });
+});
+
+/* ============================================================
+ *  裝置綁定（?register=1）
+ * ============================================================ */
+async function loadRegister() {
+  show('register');
+  S.ipReady.then(() => { $('#r-ip').textContent = S.ip || '無法取得（可能被瀏覽器擋住）'; });
+  const cur = $('#r-cur');
+  if (!S.deviceId) { cur.textContent = '此電腦尚未綁定。'; return; }
+  try {
+    const d = await api('deviceInfo', { deviceId: S.deviceId });
+    if (d) {
+      cur.innerHTML = `此電腦已綁定為「<b>${esc(d.deviceName)}</b>」（${d.active ? '啟用中' : '<span style="color:var(--red)">已停用</span>'}）<br>綁定人：${esc(d.registeredBy)}・${esc(d.registeredAt)}`;
+      $('#r-go').textContent = '重新綁定此電腦';
+    } else cur.textContent = '此電腦的綁定紀錄不存在，請重新綁定。';
+  } catch (e) { cur.textContent = e.message; }
+}
+
+$('#r-go').addEventListener('click', e => busy(e.currentTarget, async () => {
+  const d = await api('registerDevice', {
+    adminCode: $('#r-code').value, deviceName: $('#r-name').value.trim(),
+    registeredBy: $('#r-by').value.trim(), oldDeviceId: S.deviceId,
+  });
+  S.deviceId = d.deviceId;
+  store.set('impr_deviceId', d.deviceId);
+  $('#r-code').value = '';
+  toast('綁定完成：' + d.deviceName);
+  loadRegister();
+}));
+
+/* ============================================================
+ *  打卡首頁
+ * ============================================================ */
+async function loadHome() {
+  show('home');
+  renderChrome();
+  if (S.user) $('#h-hello').textContent = S.user.name + '，你好';
+  $('#b-in').disabled = $('#b-out').disabled = true;
+  try {
+    const d = await api('status', { deviceId: S.deviceId });
+    S.st = d;
+    S.user = d.user;
+    S.offset = d.serverMs - Date.now();
+    store.set('impr_user', JSON.stringify(d.user));
+    renderChrome();
+    renderHome();
+  } catch (e) {
+    if (S.token) { $('#h-badge').className = 'badge'; $('#h-badge').textContent = '無法連線'; }
+    toast(e.message, 'err');
+  }
+}
+
+function renderHome() {
+  const d = S.st;
+  const office = d.mode === 'OFFICE';
+  $('#h-hello').textContent = d.user.name + '，你好';
+  const badge = $('#h-badge');
+  badge.className = 'badge ' + (office ? 'office' : 'trip');
+  badge.textContent = office ? '● 辦公室打卡' : '● 出差打卡';
+  $('#h-hint').textContent = office ? '' :
+    (!d.deviceOk && !d.ipOk ? '非綁定裝置、非辦公室網路' : !d.deviceOk ? '此裝置未綁定為辦公室電腦' : '目前不在辦公室網路') + '，已自動切換為出差模式';
+
+  $('#trip').classList.toggle('hidden', office);
+  if (!office) {
+    const sel = $('#t-reason');
+    if (!sel.options.length) {
+      sel.innerHTML = '<option value="">請選擇</option>' + d.tripReasons.map(r => `<option>${esc(r)}</option>`).join('');
+      $('#t-loc').value = store.get('impr_lastLoc') || '';
+    }
+    requestGeo();
+  }
+
+  const inR = d.today.in, outR = d.today.out;
+  const bi = $('#b-in'), bo = $('#b-out');
+  bi.classList.toggle('done', !!inR);
+  bi.disabled = !!inR;
+  $('#b-in-t').textContent = inR ? '已打卡 ' + hm(inR.time) : '';
+  bo.classList.toggle('done', !!outR);
+  bo.disabled = false;
+  $('#b-out-t').textContent = outR ? '已打卡 ' + hm(outR.time) : '';
+
+  $('#h-flags').innerHTML = flagChips([inR && inR.flag, outR && outR.flag].filter(Boolean).join(','));
+  $('#h-due').textContent = !d.workday ? `今日${d.holidayName ? '為「' + d.holidayName + '」' : '為非工作日'}，加班須事前申請核准` :
+    inR ? `今日應下班時間 ${d.dueOut}` : `上班時間 ${d.workStart}–${d.workEnd}（彈性 30 分鐘）`;
+}
+
+function requestGeo() {
+  const el = $('#t-geo');
+  if (S.geo.state === 'ok' || S.geo.state === 'pending') return;
+  if (!navigator.geolocation) {
+    S.geo = { state: 'none' };
+    el.textContent = '📍 此裝置不支援定位（不影響打卡）';
+    return;
+  }
+  el.textContent = '📍 定位中…（可直接打卡）';
+  const p = new Promise(res => navigator.geolocation.getCurrentPosition(
+    pos => { S.geo = { state: 'ok', lat: pos.coords.latitude, lng: pos.coords.longitude }; el.textContent = '📍 已取得定位'; res(); },
+    () => { S.geo = { state: 'none' }; el.textContent = '📍 未提供定位（不影響打卡，紀錄將標記「未提供定位」）'; res(); },
+    { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+  ));
+  S.geo = { state: 'pending', p };
+}
+
+$('#t-reason').addEventListener('change', e => $('#t-note-wrap').classList.toggle('hidden', e.target.value !== '其他'));
+$('#b-in').addEventListener('click', () => punch('IN'));
+$('#b-out').addEventListener('click', () => punch('OUT'));
+
+async function punch(type) {
+  const d = S.st;
+  if (!d) return;
+  if (type === 'IN' && d.today.in) return;
+  if (type === 'OUT' && d.today.out &&
+      !confirm(`今日已於 ${hm(d.today.out.time)} 打過下班卡，\n再次打卡將以本次時間為準，確定嗎？`)) return;
+
+  const p = { deviceId: S.deviceId };
+  if (d.mode === 'TRIP') {
+    const loc = $('#t-loc').value.trim(), rs = $('#t-reason').value, note = $('#t-note').value.trim();
+    if (!loc) { toast('請填寫出差地點', 'err'); $('#t-loc').focus(); return; }
+    if (!rs) { toast('請選擇出差事由', 'err'); $('#t-reason').focus(); return; }
+    if (rs === '其他' && !note) { toast('請填寫事由說明', 'err'); $('#t-note').focus(); return; }
+    if (S.geo.state === 'pending') await Promise.race([S.geo.p, sleep(1500)]); // 最多等 1.5 秒，不阻擋打卡
+    Object.assign(p, { location: loc, reason: rs, reasonNote: note });
+    if (S.geo.state === 'ok') Object.assign(p, { lat: S.geo.lat, lng: S.geo.lng });
+    store.set('impr_lastLoc', loc);
+  }
+
+  const btn = type === 'IN' ? $('#b-in') : $('#b-out');
+  $('#b-in').disabled = $('#b-out').disabled = true;
+  btn.classList.add('busy');
+  try {
+    const r = await api(type === 'IN' ? 'clockIn' : 'clockOut', p);
+    toast(r.msg, r.flags.length ? 'warn' : 'ok');
+    d.today[type === 'IN' ? 'in' : 'out'] = r.record;
+    d.mode = r.mode;
+    if (r.dueOut) d.dueOut = r.dueOut;
+    btn.classList.remove('busy');
+    renderHome();
+  } catch (e) {
+    btn.classList.remove('busy');
+    toast(e.message, 'err');
+    loadHome(); // 重新判定模式（例如網路切換後轉為出差）
+  }
+}
+
+/* ============================================================
+ *  我的紀錄
+ * ============================================================ */
+async function loadRecords() {
+  show('records');
+  const mi = $('#rc-month');
+  if (!mi.value) mi.value = thisMonth();
+  const box = $('#rc-body');
+  box.innerHTML = '<div class="empty">載入中…</div>';
+  try {
+    const d = await api('myRecords', { month: mi.value });
+    const days = {};
+    d.attendance.forEach(r => { (days[r.date] = days[r.date] || {})[r.type] = r; });
+    const line = (r, label) => r
+      ? `${label} <b>${hm(r.time)}</b> ${modeChip(r.mode)}${r.mode === 'TRIP' ? statusChip(r.status) : ''}${flagChips(r.flag)}`
+      : `${label} <span class="muted">—</span>`;
+    const att = Object.keys(days).sort().reverse().map(date => {
+      const x = days[date];
+      const trips = [x.IN, x.OUT].filter(r => r && r.mode === 'TRIP');
+      const tripInfo = trips.length ? `<div class="sub">📍 ${esc(trips[0].location)}・${esc(trips[0].reason)}${trips.find(t => t.reviewNote) ? '<br>主管備註：' + esc(trips.find(t => t.reviewNote).reviewNote) : ''}</div>` : '';
+      return `<div class="item"><div class="top"><b>${md(date)}</b></div>
+        <div class="sub">${line(x.IN, '上班')}<br>${line(x.OUT, '下班')}${x.OUT && +x.OUT.overMin ? `<span class="muted">（超時 ${x.OUT.overMin} 分）</span>` : ''}</div>${tripInfo}</div>`;
+    }).join('');
+    const ots = d.overtime.map(o => `<div class="item"><div class="top"><b>${md(o.date)} ${o.planStart}–${o.planEnd}</b>${statusChip(o.status)}</div>
+      <div class="sub">${esc(o.projectName)}・${esc(o.reason)}${o.actualHours !== '' ? `<br>實際加班：<b>${esc(o.actualHours)} 小時</b>` : ''}${o.approveReason ? '<br>核定理由：' + esc(o.approveReason) : ''}</div></div>`).join('');
+    const crs = d.corrections.map(c => `<div class="item"><div class="top"><b>${md(c.date)} 補${c.type === 'IN' ? '上班' : '下班'}卡 ${c.requestTime}</b>${statusChip(c.status)}</div>
+      <div class="sub">${esc(c.reason)}${c.approveReason ? '<br>核定理由：' + esc(c.approveReason) : ''}</div></div>`).join('');
+    const totalOT = d.overtime.filter(o => o.status === '核准').reduce((a, o) => a + (+o.actualHours || 0), 0);
+    box.innerHTML = `
+      <div class="card"><h3>出勤紀錄</h3><div class="list">${att || '<div class="empty">本月尚無紀錄</div>'}</div></div>
+      <div class="card"><h3>加班單 <span class="muted" style="font-weight:400;font-size:14px">本月核准 ${totalOT} 小時</span></h3><div class="list">${ots || '<div class="empty">本月無加班申請</div>'}</div></div>
+      <div class="card"><h3>補卡申請</h3><div class="list">${crs || '<div class="empty">本月無補卡申請</div>'}</div></div>`;
+  } catch (e) {
+    box.innerHTML = '';
+    toast(e.message, 'err');
+  }
+}
+$('#rc-go').addEventListener('click', loadRecords);
+
+/* ============================================================
+ *  申請加班 / 補卡
+ * ============================================================ */
+async function initApply() {
+  show('apply');
+  if (!S.st) { try { S.st = await api('status', { deviceId: S.deviceId }); } catch (e) { toast(e.message, 'err'); return; } }
+  const sel = $('#ot-proj');
+  sel.innerHTML = '<option value="">請選擇專案</option>' +
+    S.st.projects.map(p => `<option value="${esc(p.projectCode)}">${esc(p.projectCode)}｜${esc(p.projectName)}</option>`).join('');
+  if (!$('#ot-date').value) {
+    $('#ot-date').value = today();
+    $('#ot-start').value = S.st.dueOut || S.st.workEnd || '18:30';
+    $('#ot-end').value = '20:30';
+  }
+  if (!$('#cr-date').value) $('#cr-date').value = today();
+  $('#cr-date').max = today();
+}
+
+$('#ap-seg').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  $$('#ap-seg button').forEach(x => x.classList.toggle('active', x === b));
+  $('#f-ot').classList.toggle('hidden', b.dataset.f !== 'ot');
+  $('#f-corr').classList.toggle('hidden', b.dataset.f !== 'corr');
+});
+
+$('#f-ot').addEventListener('submit', e => {
+  e.preventDefault();
+  busy($('#f-ot button[type=submit]'), async () => {
+    const r = await api('applyOT', {
+      date: $('#ot-date').value, planStart: $('#ot-start').value, planEnd: $('#ot-end').value,
+      project: $('#ot-proj').value, reason: $('#ot-reason').value.trim(),
+    });
+    toast(r.msg);
+    $('#ot-reason').value = '';
+  });
+});
+
+$('#f-corr').addEventListener('submit', e => {
+  e.preventDefault();
+  busy($('#f-corr button[type=submit]'), async () => {
+    const r = await api('applyCorrection', {
+      date: $('#cr-date').value, type: $('#cr-type').value,
+      requestTime: $('#cr-time').value, reason: $('#cr-reason').value.trim(),
+    });
+    toast(r.msg);
+    $('#cr-reason').value = '';
+  });
+});
+
+/* ============================================================
+ *  主管審核
+ * ============================================================ */
+const REASON_TIP = '（必填，至少 5 字）';
+
+async function loadReview() {
+  show('review');
+  if (!$('#an-month').value) $('#an-month').value = thisMonth();
+  const box = $('#rv-list');
+  box.innerHTML = '<div class="empty">載入中…</div>';
+  try {
+    const d = await api('pendingList');
+    S.pending = d;
+    if (S.st) { S.st.pendingCount = d.trips.length + d.overtime.length + d.corrections.length; renderChrome(); }
+    const sec = (title, n, html) => `<h3 class="sec">${title}<span class="cnt">${n}</span></h3>` + (n ? html : '<div class="card empty">目前沒有待審項目</div>');
+
+    const trips = d.trips.map((g, i) => `
+      <div class="card rcard" data-kind="trip" data-i="${i}">
+        <div class="rh"><b>${esc(g.name)}</b><span class="muted">${esc(g.month)}・${g.records.length} 筆出差紀錄</span></div>
+        ${g.records.map(r => `<label class="tl"><input type="checkbox" value="${esc(r.recordId)}" checked>
+          <span><b>${md(r.date)} ${r.type === 'IN' ? '上班' : '下班'} ${hm(r.time)}</b><br>${esc(r.location)}・${esc(r.reason)}
+          ${r.lat ? ` <a href="https://www.google.com/maps?q=${encodeURIComponent(r.lat + ',' + r.lng)}" target="_blank" rel="noopener">地圖</a>` : ''}</span></label>`).join('')}
+        <textarea placeholder="備註（退回時必填，至少 5 字）"></textarea>
+        <div class="ract"><button class="btn ok" data-d="approve">確認勾選項目</button><button class="btn ng" data-d="reject">退回勾選項目</button></div>
+      </div>`).join('');
+
+    const ots = d.overtime.map(o => `
+      <div class="card rcard" data-kind="ot" data-id="${esc(o.otId)}">
+        <div class="rh"><b>${esc(o.name)}</b><span class="muted">申請於 ${esc(o.appliedAt.slice(5, 16))}</span></div>
+        <div class="rb"><b>${md(o.date)} ${o.planStart}–${o.planEnd}</b><br>專案：${esc(o.projectName)}<br>事由：${esc(o.reason)}</div>
+        <textarea placeholder="核定理由${REASON_TIP}"></textarea>
+        <div class="ract"><button class="btn ok" data-d="approve">核准</button><button class="btn ng" data-d="reject">駁回</button></div>
+      </div>`).join('');
+
+    const crs = d.corrections.map(c => `
+      <div class="card rcard" data-kind="corr" data-id="${esc(c.corrId)}">
+        <div class="rh"><b>${esc(c.name)}</b><span class="muted">補${c.type === 'IN' ? '上班' : '下班'}卡</span></div>
+        <div class="rb"><b>${md(c.date)} ${c.requestTime}</b><br>原因：${esc(c.reason)}</div>
+        <textarea placeholder="核定理由${REASON_TIP}"></textarea>
+        <div class="ract"><button class="btn ok" data-d="approve">核准</button><button class="btn ng" data-d="reject">駁回</button></div>
+      </div>`).join('');
+
+    box.innerHTML = sec('加班審核', d.overtime.length, ots) + sec('補卡審核', d.corrections.length, crs) +
+      sec('出差確認', d.trips.length, trips);
+  } catch (e) {
+    box.innerHTML = '';
+    toast(e.message, 'err');
+  }
+}
+
+$('#rv-list').addEventListener('click', e => {
+  const b = e.target.closest('button[data-d]');
+  if (!b) return;
+  const card = b.closest('.rcard');
+  const decision = b.dataset.d;
+  const note = $('textarea', card).value.trim();
+
+  if (card.dataset.kind === 'trip') {
+    const g = S.pending.trips[card.dataset.i];
+    const ids = $$('input[type=checkbox]:checked', card).map(x => x.value);
+    if (!ids.length) return toast('請至少勾選一筆', 'err');
+    if (decision === 'reject' && note.length < 5) return toast('退回須填寫理由（至少 5 字）', 'err');
+    busy(b, async () => {
+      const r = await api('reviewTrip', { empId: g.empId, month: g.month, recordIds: ids, decision, note });
+      toast(r.msg);
+      loadReview();
+    });
+  } else {
+    if (note.length < 5) { $('textarea', card).focus(); return toast('請填寫核定理由（至少 5 字）', 'err'); }
+    const isOT = card.dataset.kind === 'ot';
+    busy(b, async () => {
+      const r = await api(isOT ? 'reviewOT' : 'reviewCorrection', { [isOT ? 'otId' : 'corrId']: card.dataset.id, decision, reason: note });
+      toast(r.msg);
+      loadReview();
+    });
+  }
+});
+
+$('#an-go').addEventListener('click', e => busy(e.currentTarget, async () => {
+  const d = await api('anomalyReport', { month: $('#an-month').value });
+  const cls = { 遲到: 'warn', 早退: 'warn', 未申請延時: 'err', 無打卡紀錄: '', 缺上班卡: 'err', 缺下班卡: 'err' };
+  $('#an-body').innerHTML = d.rows.length
+    ? `<div class="tablewrap"><table><tr><th>日期</th><th>姓名</th><th>類型</th><th>說明</th></tr>${d.rows.map(r =>
+        `<tr><td>${md(r.date)}</td><td>${esc(r.name)}</td><td><span class="chip ${cls[r.kind] || ''}">${esc(r.kind)}</span></td><td>${esc(r.detail)}</td></tr>`).join('')}</table></div>`
+    : '<div class="empty">本月無異常 🎉</div>';
+}));
+
+/* ============================================================
+ *  管理後台
+ * ============================================================ */
+let adminTab = 'emp';
+const SETTING_FIELDS = [
+  ['OFFICE_IPS', '辦公室 IP（多組以逗號分隔）', 'text'],
+  ['WORK_START', '上班時間', 'time'], ['WORK_END', '下班時間', 'time'],
+  ['LUNCH_START', '午休開始', 'time'], ['LUNCH_END', '午休結束', 'time'],
+  ['FLEX_MIN', '彈性分鐘數', 'number'], ['OT_THRESHOLD_MIN', '超時判定門檻（分鐘）', 'number'],
+  ['OT_UNIT_HOURS', '加班計算單位（小時）', 'number'], ['SESSION_DAYS', '登入效期（天）', 'number'],
+  ['ADMIN_CODE', '裝置綁定管理碼（至少 6 碼）', 'text'],
+];
+
+function loadAdmin() {
+  show('admin');
+  renderAdmin();
+}
+
+$('#ad-seg').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  adminTab = b.dataset.s;
+  renderAdmin();
+});
+
+async function renderAdmin() {
+  $$('#ad-seg button').forEach(x => x.classList.toggle('active', x.dataset.s === adminTab));
+  const box = $('#ad-body');
+  box.innerHTML = '<div class="empty">載入中…</div>';
+  try {
+    if (adminTab === 'emp') {
+      S.emps = await api('adminListEmployees');
+      const name = id => (S.emps.find(x => x.empId === id) || {}).name || id || '—';
+      box.innerHTML = `<div id="emp-form-wrap"></div>
+        <div class="card"><div class="toolbar" style="justify-content:space-between;align-items:center"><h3 style="margin:0">員工（${S.emps.length}）</h3>
+        <button class="btn primary sm" data-a="new-emp">＋ 新增員工</button></div>
+        <div class="tablewrap" style="margin-top:10px"><table><tr><th>編號</th><th>姓名</th><th>部門</th><th>角色</th><th>主管</th><th>狀態</th><th></th></tr>
+        ${S.emps.map(e => `<tr><td>${esc(e.empId)}</td><td>${esc(e.name)}</td><td>${esc(e.dept)}</td><td>${ROLE[e.role] || esc(e.role)}</td>
+          <td>${esc(name(e.managerId))}</td><td>${e.active ? '<span class="chip ok">在職</span>' : '<span class="chip">停用</span>'}</td>
+          <td><button class="btn sm" data-a="edit-emp" data-id="${esc(e.empId)}">編輯</button></td></tr>`).join('')}</table></div></div>`;
+    } else if (adminTab === 'dev') {
+      const list = await api('adminListDevices');
+      box.innerHTML = `<div class="card"><h3>已綁定裝置</h3>
+        <div class="hint-box" style="margin:0 0 10px">新增綁定：到辦公室電腦開啟 <b>${esc(location.origin + location.pathname)}?register=1</b>，輸入管理碼即可。</div>
+        <div class="list">${list.map(d => `<div class="item"><div class="top"><b>${esc(d.deviceName)}</b>
+          <button class="btn sm ${d.active ? 'ng' : 'ok'}" data-a="toggle-dev" data-id="${esc(d.deviceId)}" data-on="${d.active ? '' : '1'}">${d.active ? '停用' : '啟用'}</button></div>
+          <div class="sub">${d.active ? '<span class="chip ok">啟用</span>' : '<span class="chip">停用</span>'} 綁定人 ${esc(d.registeredBy)}・${esc(d.registeredAt)}<br><span style="font-size:12px">${esc(d.deviceId)}</span></div></div>`).join('') || '<div class="empty">尚無綁定裝置</div>'}</div></div>`;
+    } else if (adminTab === 'proj') {
+      const list = await api('adminListProjects');
+      box.innerHTML = `<div class="card"><h3>新增 / 修改專案</h3><div class="grid2">
+        <label>專案代碼<input id="pj-code" placeholder="例：P26-010"></label><label>專案名稱<input id="pj-name"></label></div>
+        <button class="btn primary block" data-a="save-proj">儲存專案</button></div>
+        <div class="card"><h3>專案列表</h3><div class="list">${list.map(p => `<div class="item"><div class="top">
+          <span><b>${esc(p.projectCode)}</b>｜${esc(p.projectName)} ${p.active ? '' : '<span class="chip">停用</span>'}</span>
+          <button class="btn sm" data-a="toggle-proj" data-id="${esc(p.projectCode)}" data-on="${p.active ? '' : '1'}">${p.active ? '停用' : '啟用'}</button></div></div>`).join('') || '<div class="empty">尚無專案</div>'}</div></div>`;
+    } else if (adminTab === 'hol') {
+      const year = S.holYear || today().slice(0, 4);
+      const list = await api('adminListHolidays', { year });
+      box.innerHTML = `<div class="card"><h3>新增 / 修改假日</h3>
+        <div class="hint-box" style="margin:0 0 4px">只需列出「週一至週五」的放假日；週末本來就不上班。若有週末補班，類型選「補班日」。</div>
+        <div class="grid2"><label>日期<input type="date" id="hl-date"></label>
+        <label>類型<select id="hl-type"><option value="HOLIDAY">放假日</option><option value="WORKDAY">補班日</option></select></label></div>
+        <label>名稱<input id="hl-name" placeholder="例：中秋節、颱風假"></label>
+        <button class="btn primary block" data-a="save-hol">儲存</button></div>
+        <div class="card"><div class="toolbar" style="justify-content:space-between;align-items:center">
+          <h3 style="margin:0">${esc(year)} 年假日（${list.length}）</h3>
+          <span><button class="btn sm" data-a="hol-year" data-y="${+year - 1}">‹ ${+year - 1}</button>
+          <button class="btn sm" data-a="hol-year" data-y="${+year + 1}">${+year + 1} ›</button></span></div>
+        <div class="list">${list.map(h => `<div class="item"><div class="top">
+          <span><b>${md(h.date)}</b> ${esc(h.name)} ${h.type === 'WORKDAY' ? '<span class="chip navy">補班</span>' : '<span class="chip ok">放假</span>'}</span>
+          <button class="btn sm ng" data-a="del-hol" data-id="${esc(h.date)}">刪除</button></div></div>`).join('') || '<div class="empty">此年度尚無假日資料</div>'}</div></div>`;
+    } else if (adminTab === 'set') {
+      const s = await api('adminGetSettings');
+      await S.ipReady;
+      box.innerHTML = `<div class="card"><h3>系統設定</h3>
+        ${SETTING_FIELDS.map(([k, label, type]) => `<label>${label}<input data-k="${k}" type="${type}" ${type === 'number' ? 'step="any" min="0"' : ''} value="${esc(s[k])}"></label>`).join('')}
+        <div class="hint-box">你目前的公網 IP：<b>${esc(S.ip || '無法取得')}</b>
+          ${S.ip ? `<button class="btn sm" data-a="add-ip" style="margin-left:8px">加入辦公室 IP</button>` : ''}</div>
+        <button class="btn primary block" data-a="save-set">儲存設定</button></div>`;
+    } else if (adminTab === 'exp') {
+      box.innerHTML = `<div class="card"><h3>月報匯出</h3>
+        <label>月份<input type="month" id="ex-month" value="${thisMonth()}"></label>
+        <div class="ract"><button class="btn primary" data-a="export" data-kind="summary">下載月報 CSV</button>
+        <button class="btn" data-a="export" data-kind="detail">下載逐日明細 CSV</button></div>
+        <div class="hint-box">月報：每人一列（出勤、辦公室、出差、遲到、早退、缺卡、補卡、核准加班時數、未申請延時）。<br>明細：每人每日一列，含出差地點與異常說明。</div></div>`;
+    }
+  } catch (e) {
+    box.innerHTML = '';
+    toast(e.message, 'err');
+  }
+}
+
+function empForm(e) {
+  const isNew = !e;
+  e = e || { active: true, role: 'staff' };
+  const mgrs = S.emps.filter(x => x.role !== 'staff' && x.empId !== e.empId);
+  return `<div class="card" id="emp-form"><h3>${isNew ? '新增員工' : '編輯員工：' + esc(e.empId)}</h3><div class="grid2">
+    <label>員工編號<input name="empId" value="${esc(e.empId || '')}" ${isNew ? '' : 'readonly'} placeholder="例：S010"></label>
+    <label>姓名<input name="name" value="${esc(e.name || '')}"></label>
+    <label>Email<input name="email" type="email" value="${esc(e.email || '')}"></label>
+    <label>部門<input name="dept" value="${esc(e.dept || '')}"></label>
+    <label>角色<select name="role">${Object.keys(ROLE).map(r => `<option value="${r}" ${e.role === r ? 'selected' : ''}>${ROLE[r]}</option>`).join('')}</select></label>
+    <label>直屬主管<select name="managerId"><option value="">（無）</option>${mgrs.map(m =>
+      `<option value="${esc(m.empId)}" ${e.managerId === m.empId ? 'selected' : ''}>${esc(m.empId)} ${esc(m.name)}</option>`).join('')}</select></label>
+    <label>${isNew ? '初始 PIN（4–6 位數字）' : '重設 PIN（留空則不變更）'}<input name="pin" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    <label class="chk"><input type="checkbox" name="active" ${e.active ? 'checked' : ''}> 在職（啟用）</label></div>
+    <div class="ract"><button class="btn primary" data-a="save-emp" data-new="${isNew ? '1' : ''}">儲存</button><button class="btn" data-a="cancel-emp">取消</button></div></div>`;
+}
+
+$('#ad-body').addEventListener('click', e => {
+  const b = e.target.closest('[data-a]');
+  if (!b) return;
+  const a = b.dataset.a;
+
+  if (a === 'new-emp' || a === 'edit-emp') {
+    $('#emp-form-wrap').innerHTML = empForm(a === 'edit-emp' ? S.emps.find(x => x.empId === b.dataset.id) : null);
+    $('#emp-form').scrollIntoView({ behavior: 'smooth' });
+  } else if (a === 'cancel-emp') {
+    $('#emp-form-wrap').innerHTML = '';
+  } else if (a === 'save-emp') {
+    const f = $('#emp-form');
+    const v = n => $(`[name=${n}]`, f);
+    busy(b, async () => {
+      const r = await api('adminSaveEmployee', {
+        isNew: !!b.dataset.new, pin: v('pin').value.trim(),
+        emp: {
+          empId: v('empId').value.trim(), name: v('name').value.trim(), email: v('email').value.trim(),
+          dept: v('dept').value.trim(), role: v('role').value, managerId: v('managerId').value, active: v('active').checked,
+        },
+      });
+      toast(r.msg);
+      renderAdmin();
+    });
+  } else if (a === 'toggle-dev') {
+    if (!b.dataset.on && !confirm('停用後，此電腦打卡將一律判定為出差。確定停用？')) return;
+    busy(b, async () => { toast((await api('adminToggleDevice', { deviceId: b.dataset.id, active: !!b.dataset.on })).msg); renderAdmin(); });
+  } else if (a === 'save-proj') {
+    busy(b, async () => {
+      toast((await api('adminSaveProject', { projectCode: $('#pj-code').value.trim(), projectName: $('#pj-name').value.trim() })).msg);
+      renderAdmin();
+    });
+  } else if (a === 'toggle-proj') {
+    busy(b, async () => { toast((await api('adminSaveProject', { projectCode: b.dataset.id, active: !!b.dataset.on })).msg); renderAdmin(); });
+  } else if (a === 'hol-year') {
+    S.holYear = b.dataset.y;
+    renderAdmin();
+  } else if (a === 'save-hol') {
+    busy(b, async () => {
+      const date = $('#hl-date').value;
+      toast((await api('adminSaveHoliday', { date, name: $('#hl-name').value.trim(), type: $('#hl-type').value })).msg);
+      if (date) S.holYear = date.slice(0, 4);
+      renderAdmin();
+    });
+  } else if (a === 'del-hol') {
+    if (!confirm('確定刪除 ' + b.dataset.id + '？')) return;
+    busy(b, async () => { toast((await api('adminDeleteHoliday', { date: b.dataset.id })).msg); renderAdmin(); });
+  } else if (a === 'add-ip') {
+    const inp = $('[data-k=OFFICE_IPS]');
+    const ips = inp.value.split(',').map(x => x.trim()).filter(Boolean);
+    if (!ips.includes(S.ip)) ips.push(S.ip);
+    inp.value = ips.join(',');
+    toast('已加入，請按「儲存設定」');
+  } else if (a === 'save-set') {
+    const settings = {};
+    $$('[data-k]', $('#ad-body')).forEach(i => { settings[i.dataset.k] = i.value.trim(); });
+    busy(b, async () => { toast((await api('adminSaveSettings', { settings })).msg); });
+  } else if (a === 'export') {
+    busy(b, async () => {
+      const r = await api('exportMonthly', { month: $('#ex-month').value, kind: b.dataset.kind });
+      download(r.filename, r.csv);
+    });
+  }
+});
+
+/* ============================================================
+ *  啟動
+ * ============================================================ */
+setInterval(() => {
+  const now = nowTW();
+  $('#h-clock').textContent = now.toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
+  $('#h-date').textContent = now.toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei', year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+}, 1000);
+
+(function init() {
+  if (API_URL.includes('請貼上')) toast('尚未設定 API_URL，請編輯 index.html 最上方', 'err');
+  S.ipReady = getIp();
+  renderChrome();
+  if (new URLSearchParams(location.search).has('register')) return loadRegister();
+  if (!S.token) return show('login');
+  loadHome();
+})();
+</script>
+</body>
+</html>
